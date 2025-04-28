@@ -15,7 +15,25 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
+      },
+      "package": "com.myschool.mobile",
+      "permissions": [
+        "INTERNET"
+      ]
+    },
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id"
       }
+    },
+    "owner": "your-expo-username",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "your-update-url",
+      "enabled": true,
+      "fallbackToCacheTimeout": 0
     },
     "web": {
       "bundler": "metro",
