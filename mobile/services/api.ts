@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // API temel URL'si - backend'in çalıştığı adresi kullanın
-const API_URL = 'http://192.168.1.14:5000/api';
+const API_URL = 'http://10.192.32.29:5000/api';
 
 // Axios instance oluşturma
 const api = axios.create({
@@ -59,8 +59,8 @@ export const authService = {
 // Kullanıcı servisi
 export const userService = {
   getProfile: async () => {
-    const response = await api.get('/users/profile');
-    return response.data;
+    const response = await api.get('/auth/me');
+    return response.data.data;
   },
   updateProfile: async (userData: any) => {
     const response = await api.put('/users/profile', userData);

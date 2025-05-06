@@ -1,27 +1,31 @@
 import React, { useState } from 'react';
-import { StyleSheet, ScrollView, Image, TouchableOpacity, Switch } from 'react-native';
+import { StyleSheet, ScrollView, Image, TouchableOpacity, Switch, Alert } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useColorScheme } from 'react-native';
+import { useAuth } from '../../contexts/AuthContext';
+import { userService } from '../../services/api';
 
-// Mock user data - replace with actual user from auth context in a real app
-const MOCK_USER = {
-  id: '123',
-  name: 'Alex Smith',
-  email: 'alex.smith@example.com',
-  role: 'Student',
-  grade: '11th Grade',
-  avatar: null, // In a real app, this would be a URL to the user's avatar
-  enrollmentYear: '2021',
-  studentId: 'S20210123',
-};
+interface UserProfile {
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  avatar?: string;
+  grade?: string;
+  enrollmentYear?: string;
+  studentId?: string;
+}
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(colorScheme === 'dark');
+  const { logout } = useAuth();
+  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const toggleNotifications = () => {
     setNotificationsEnabled(previousState => !previousState);
@@ -32,11 +36,55 @@ export default function ProfileScreen() {
     // In a real app, this would update the app's theme
   };
 
-  // Logout function placeholder
-  const handleLogout = () => {
-    // In a real app, this would clear auth tokens and navigate to login
-    console.log('Logging out...');
+  React.useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    try {
+      setIsLoading(true);
+      const response = await userService.getProfile();
+      console.log('API Response:', response); // Debug için
+      
+      // API'den gelen veriyi doğru formata dönüştür
+      const profileData: UserProfile = {
+        firstName: response.firstName || '',
+        lastName: response.lastName || '',
+        email: response.email || '',
+        role: response.role || '',
+        avatar: response.avatar,
+        grade: response.grade,
+        enrollmentYear: response.enrollmentYear,
+        studentId: response.studentId
+      };
+      
+      setUserProfile(profileData);
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      Alert.alert('Error', 'Failed to load profile');
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Error logging out:', error);
+      Alert.alert('Error', 'Failed to logout');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ThemedView style={styles.loadingContainer}>
+          <ThemedText>Loading profile...</ThemedText>
+        </ThemedView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -46,17 +94,22 @@ export default function ProfileScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <ThemedView style={styles.profileSection}>
-          {MOCK_USER.avatar ? (
-            <Image source={{ uri: MOCK_USER.avatar }} style={styles.avatar} />
+          {userProfile?.avatar ? (
+            <Image source={{ uri: userProfile.avatar }} style={styles.avatar} />
           ) : (
             <ThemedView style={styles.avatarPlaceholder}>
               <ThemedText type="title">
-                {MOCK_USER.name.charAt(0)}
+                {userProfile?.firstName?.charAt(0)}
+                {userProfile?.lastName?.charAt(0)}
               </ThemedText>
             </ThemedView>
           )}
-          <ThemedText type="title" style={styles.name}>{MOCK_USER.name}</ThemedText>
-          <ThemedText style={styles.role}>{MOCK_USER.role} • {MOCK_USER.grade}</ThemedText>
+          <ThemedText type="title" style={styles.name}>
+            {userProfile?.firstName} {userProfile?.lastName}
+          </ThemedText>
+          <ThemedText style={styles.role}>
+            {userProfile?.role} {userProfile?.grade ? `• ${userProfile.grade}` : ''}
+          </ThemedText>
         </ThemedView>
 
         <ThemedView style={styles.infoSection}>
@@ -64,18 +117,22 @@ export default function ProfileScreen() {
           
           <ThemedView style={styles.infoRow}>
             <MaterialIcons name="email" size={20} color="#888" />
-            <ThemedText style={styles.infoText}>{MOCK_USER.email}</ThemedText>
+            <ThemedText style={styles.infoText}>{userProfile?.email}</ThemedText>
           </ThemedView>
           
-          <ThemedView style={styles.infoRow}>
-            <MaterialIcons name="school" size={20} color="#888" />
-            <ThemedText style={styles.infoText}>Enrolled: {MOCK_USER.enrollmentYear}</ThemedText>
-          </ThemedView>
+          {userProfile?.enrollmentYear && (
+            <ThemedView style={styles.infoRow}>
+              <MaterialIcons name="school" size={20} color="#888" />
+              <ThemedText style={styles.infoText}>Enrolled: {userProfile.enrollmentYear}</ThemedText>
+            </ThemedView>
+          )}
           
-          <ThemedView style={styles.infoRow}>
-            <MaterialIcons name="badge" size={20} color="#888" />
-            <ThemedText style={styles.infoText}>ID: {MOCK_USER.studentId}</ThemedText>
-          </ThemedView>
+          {userProfile?.studentId && (
+            <ThemedView style={styles.infoRow}>
+              <MaterialIcons name="badge" size={20} color="#888" />
+              <ThemedText style={styles.infoText}>ID: {userProfile.studentId}</ThemedText>
+            </ThemedView>
+          )}
         </ThemedView>
 
         <ThemedView style={styles.settingsSection}>
@@ -116,6 +173,11 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     padding: 16,
